@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>เริ่มใช้งาน • หมอนุ่น แชทบอทสุขภาพ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="prechat-overlay">
+    <div class="prechat-card">
+      <h2 class="prechat-title">เริ่มต้นใช้งาน</h2>
+      <div class="prechat-content">
+        <h4>Purpose (วัตถุประสงค์ของระบบแชทบอทให้คำปรึกษาสุขภาพ)</h4>
+        <ul>
+          <li>เพื่อให้ผู้ใช้งานสามารถสอบถามข้อมูลด้านสุขภาพเบื้องต้นได้อย่างสะดวก รวดเร็ว และตลอดเวลา</li>
+          <li>เพื่อช่วยให้ผู้ใช้ประเมินอาการเริ่มต้นได้ด้วยตนเอง ก่อนตัดสินใจไปพบแพทย์</li>
+          <li>เพื่อส่งเสริมความรู้ความเข้าใจเกี่ยวกับการดูแลสุขภาพที่ถูกต้อง และลดความเข้าใจผิดที่อาจเกิดขึ้นจากข้อมูลที่ไม่น่าเชื่อถือ</li>
+          <li>เพื่อเป็นระบบช่วยสนับสนุนการเรียนรู้เกี่ยวกับการสื่อสารเชิงสุขภาพและการประยุกต์ใช้ AI ด้าน Healthcare</li>
+        </ul>
+        <h4>Guidelines (แนวทางการใช้งานและข้อควรระวัง)</h4>
+        <ul>
+          <li>บอทให้ข้อมูลเพื่อการให้ความรู้ทั่วไปด้านสุขภาพ ไม่ใช่การวินิจฉัยทางการแพทย์ และไม่สามารถทดแทนคำแนะนำจากแพทย์หรือผู้เชี่ยวชาญได้</li>
+          <li>หากผู้ใช้มีอาการรุนแรง เช่น หายใจลำบาก เจ็บหน้าอก หมดสติ ควรรีบไปพบแพทย์ทันที</li>
+          <li>ผู้ใช้ควรให้ข้อมูลอย่างถูกต้อง ครบถ้วน และเป็นความจริง เพื่อผลลัพธ์คำแนะนำที่แม่นยำมากขึ้น</li>
+          <li>บอทจะไม่เก็บข้อมูลส่วนบุคคลที่สามารถระบุตัวตนได้ (เช่น ชื่อ นามสกุล ที่อยู่ หมายเลขบัตรประชาชน) เพื่อความปลอดภัยของข้อมูล</li>
+          <li>การรับคำแนะนำจากบอทควรใช้ประกอบการพิจารณาเท่านั้น ไม่ควรนำไปใช้ตัดสินใจด้านสุขภาพเพียงลำพัง</li>
+          <li>ผู้ใช้งานควรตรวจสอบข้อมูลเพิ่มเติมจากแหล่งข้อมูลทางการแพทย์ที่น่าเชื่อถือ เพื่อประกอบการตัดสินใจ</li>
+          <li>ระบบนี้พัฒนาขึ้นเพื่อวัตถุประสงค์ทางการศึกษา และมีข้อจำกัดด้านความแม่นยำตามข้อมูลที่ใช้ในการฝึกสอน AI</li>
+        </ul>
+        <h4>หมายเหตุ</h4>
+        <p>ผลงานนี้เป็นมินิโปรเจคในรายวิชา ITD353 โดยมีจุดมุ่งหมายเพื่อศึกษาและพัฒนาการใช้งานปัญญาประดิษฐ์ในการให้คำปรึกษาด้านสุขภาพเบื้องต้น ไม่ได้มีเจตนาใช้แทนการรักษาทางการแพทย์จริง</p>
+      </div>
+      <label class="prechat-agree">
+        <input type="checkbox" id="agreeChk"> ฉันได้อ่านและยอมรับแล้ว
+      </label>
+      <button id="startChatBtn" class="prechat-start" disabled>เริ่มใช้งาน</button>
+    </div>
+  </div>
+
+  <script>
+    // Ensure green theme before entering chat
+    function setGreenDefaults(){
+      localStorage.setItem('bgName', 'bgall/bg1.jpg');
+      localStorage.setItem('themeKey', 'bg1');
+    }
+    const chk = document.getElementById('agreeChk');
+    const startBtn = document.getElementById('startChatBtn');
+    chk.addEventListener('change', () => { startBtn.disabled = !chk.checked; });
+    startBtn.addEventListener('click', () => {
+      if (!chk.checked) return;
+      localStorage.setItem('acceptedRules', 'true');
+      setGreenDefaults();
+      window.location.href = 'chat.html';
+    });
+  </script>
+
+</body>
+</html>

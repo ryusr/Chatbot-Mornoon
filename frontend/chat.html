@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>kitty_chat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+  <div class="top-row">
+    <button id="settingsBtn" class="settings-btn">ตั้งค่า</button>
+  </div>
+  <div id="chat" style="display: flex; flex-direction: column;"></div>
+
+  <div class="input-row">
+    <input type="text" id="userInput" placeholder="Type your message...">
+    <button id="sendBtn" onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<audio id="pop1" src="pop1.mp3" preload="auto"></audio>
+<audio id="pop2" src="pop2.mp3" preload="auto"></audio>
+<audio id="bgmusic" src="bgmusic.mp3" loop preload="auto"></audio>
+
+<script>
+  const chatBox = document.getElementById("chat");
+  const input = document.getElementById("userInput");
+  const bgmusic = document.getElementById("bgmusic");
+  const botProfile = { name: "หมอนุ่น", title: "ที่ปรึกษาสุขภาพ", avatar: "profile.jpg" };
+  const pop1 = document.getElementById("pop1");
+  const pop2 = document.getElementById("pop2");
+
+  // Autoplay background music only once on first interaction
+  let musicAutoplayed = false;
+  document.addEventListener("click", () => {
+    if (!musicAutoplayed) {
+      bgmusic.volume = 0.2;
+      bgmusic.play().catch(() => {});
+      musicAutoplayed = true;
+    }
+  });
+
+  input.addEventListener("keypress", function (e) {
+    if (e.key === "Enter") {
+      sendMessage();
+    }
+  });
+
+  function appendMessage(msg, cls) {
+    const row = document.createElement("div");
+    row.className = `msg ${cls}`;
+    if (cls === "bot") {
+      const img = document.createElement("img");
+      img.src = botProfile.avatar;
+      img.alt = botProfile.name;
+      img.className = "msg-avatar";
+      row.appendChild(img);
+    }
+    const bubble = document.createElement("p");
+    bubble.className = cls;
+    bubble.innerText = msg || "";
+    row.appendChild(bubble);
+    chatBox.appendChild(row);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function clamp01(v){ return Math.max(0, Math.min(1, v)); }
+  function updateLabels(){
+    const mv = Math.round(bgmusic.volume * 100);
+    const sv = Math.round((pop1.volume || 0) * 100);
+    document.getElementById("musicVolLabel").textContent = ` ${mv}%`;
+    document.getElementById("sfxVolLabel").textContent = ` ${sv}%`;
+  }
+  function setMusicVolume(v){ bgmusic.volume = clamp01(v); localStorage.setItem("musicVolume", String(bgmusic.volume)); updateLabels(); }
+  function setSfxVolume(v){ v = clamp01(v); pop1.volume = v; pop2.volume = v; localStorage.setItem("sfxVolume", String(v)); updateLabels(); }
+  function setBackground(name){
+    document.body.style.backgroundImage = `url('${name}')`;
+    localStorage.setItem("bgName", name);
+  }
+  function setTheme(themeKey){
+    document.body.classList.remove('theme-bg1','theme-bg2','theme-bg3','theme-bg4');
+    if (themeKey) {
+      document.body.classList.add(`theme-${themeKey}`);
+      localStorage.setItem('themeKey', themeKey);
+    }
+    // Highlight selected theme button if modal is already in DOM
+    const buttons = document.querySelectorAll('.bg-btn');
+    if (buttons && buttons.length) {
+      buttons.forEach(b => b.classList.remove('selected'));
+      const selected = document.querySelector(`.bg-btn[data-theme="${themeKey}"]`);
+      if (selected) selected.classList.add('selected');
+    }
+  }
+  function inferThemeFromBg(bgPath){
+    if (!bgPath) return 'bg1';
+    if (bgPath.includes('bg1')) return 'bg1';
+    if (bgPath.includes('bg2')) return 'bg2';
+    if (bgPath.includes('bg3')) return 'bg3';
+    if (bgPath.includes('bg4')) return 'bg4';
+    return 'bg1';
+  }
+
+  // On load: restore prefs and show intro
+  window.addEventListener("DOMContentLoaded", () => {
+    const savedBg = localStorage.getItem("bgName");
+    if (savedBg) {
+      setBackground(savedBg);
+      setTheme(inferThemeFromBg(savedBg));
+    } else {
+      setBackground("bgall/bg1.jpg");
+      setTheme('bg1');
+    }
+    const musicVol = parseFloat(localStorage.getItem("musicVolume") || "0.2");
+    const sfxVol = parseFloat(localStorage.getItem("sfxVolume") || "0.7");
+    setMusicVolume(musicVol);
+    setSfxVolume(sfxVol);
+
+    const intro = `สวัสดีค่ะฉันชื่อ ${botProfile.name} เป็น${botProfile.title} พร้อมช่วยดูแลสุขภาพ โภชนาการ การพักผ่อน และการออกกำลังกายนะคะ`;
+    appendMessage(intro, "bot");
+  });
+
+  async function sendMessage() {
+    const userMsg = input.value.trim();
+    if (!userMsg) return;
+    document.getElementById("pop1").play();
+    appendMessage(userMsg, "user");
+    input.value = "";
+    try {
+      const res = await fetch("http://127.0.0.1:8000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMsg })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+      const data = await res.json();
+      document.getElementById("pop2").play();
+      appendMessage(data.response, "bot");
+    } catch (err) {
+      appendMessage("ขออภัย เซิร์ฟเวอร์มีปัญหาในการตอบกลับ กรุณาลองใหม่อีกครั้งค่ะ", "bot");
+      console.error("Chat error:", err);
+    }
+  }
+
+  // Settings modal (same as before)
+  const settingsBtn = document.getElementById("settingsBtn");
+  const modal = document.createElement("div");
+  modal.id = "settingsModal";
+  modal.className = "modal hidden";
+  modal.innerHTML = `
+    <div class="modal-header drag-handle">
+      <span>การตั้งค่า</span>
+      <button class="close-btn" id="closeSettings">กลับ</button>
+    </div>
+    <div class="modal-body">
+      <section>
+        <h4>เพลงพื้นหลัง</h4>
+        <div class="row">
+          <button id="musicToggle">เล่น/หยุด</button>
+          <button id="musicVolDown">- เสียง</button>
+          <button id="musicVolUp">+ เสียง</button>
+          <span id="musicVolLabel"></span>
+        </div>
+      </section>
+      <section>
+        <h4>เสียงเอฟเฟกต์</h4>
+        <div class="row">
+          <button id="sfxVolDown">- เอฟเฟกต์</button>
+          <button id="sfxVolUp">+ เอฟเฟกต์</button>
+          <span id="sfxVolLabel"></span>
+        </div>
+      </section>
+      <section>
+        <h4>ธีม</h4>
+        <div class="row">
+          <button data-bg="bgall/bg1.jpg" data-theme="bg1" class="bg-btn" aria-label="BG1"><span class="bg-swatch"></span></button>
+          <button data-bg="bgall/bg2.jpg" data-theme="bg2" class="bg-btn" aria-label="BG2"><span class="bg-swatch"></span></button>
+          <button data-bg="bgall/bg3.jpg" data-theme="bg3" class="bg-btn" aria-label="BG3"><span class="bg-swatch"></span></button>
+          <button data-bg="bgall/bg4.jpg" data-theme="bg4" class="bg-btn" aria-label="BG4"><span class="bg-swatch"></span></button>
+        </div>
+      </section>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  settingsBtn.addEventListener("click", () => { modal.classList.remove("hidden"); updateLabels(); });
+  modal.querySelector("#closeSettings").addEventListener("click", () => modal.classList.add("hidden"));
+  modal.querySelector("#musicToggle").addEventListener("click", () => { if (bgmusic.paused) { bgmusic.play(); } else { bgmusic.pause(); } });
+  modal.querySelector("#musicVolDown").addEventListener("click", () => setMusicVolume(bgmusic.volume - 0.1));
+  modal.querySelector("#musicVolUp").addEventListener("click", () => setMusicVolume(bgmusic.volume + 0.1));
+  modal.querySelector("#sfxVolDown").addEventListener("click", () => setSfxVolume((pop1.volume||0) - 0.1));
+  modal.querySelector("#sfxVolUp").addEventListener("click", () => setSfxVolume((pop1.volume||0) + 0.1));
+  modal.querySelectorAll('.bg-btn').forEach(btn => btn.addEventListener('click', () => {
+    const bg = btn.getAttribute('data-bg');
+    const themeKey = btn.getAttribute('data-theme');
+    setBackground(bg);
+    setTheme(themeKey);
+  }));
+
+  // Draggable modal (mouse + touch)
+  (function enableDrag(){
+    const header = modal.querySelector('.drag-handle');
+    let dragging = false, startX = 0, startY = 0, originLeft = 0, originTop = 0;
+    function onDown(clientX, clientY){
+      dragging = true; startX = clientX; startY = clientY;
+      const rect = modal.getBoundingClientRect(); originLeft = rect.left; originTop = rect.top;
+      modal.style.position = 'fixed';
+    }
+    function onMove(clientX, clientY){ if(!dragging) return; const dx = clientX - startX; const dy = clientY - startY; modal.style.left = `${originLeft + dx}px`; modal.style.top = `${originTop + dy}px`; }
+    function onUp(){ dragging = false; }
+    header.addEventListener('mousedown', e => onDown(e.clientX, e.clientY));
+    window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', onUp);
+    header.addEventListener('touchstart', e => { const t=e.touches[0]; onDown(t.clientX, t.clientY); }, {passive:true});
+    window.addEventListener('touchmove', e => { const t=e.touches[0]; onMove(t.clientX, t.clientY); }, {passive:true});
+    window.addEventListener('touchend', onUp);
+  })();
+</script>
+
+</body>
+</html>
+
